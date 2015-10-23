@@ -1,0 +1,90 @@
+---
+title: "practical ml - course project"
+author: "petra ornstein"
+date: "23 oktober 2015"
+output: html_document
+---
+
+Project aim: predict the manner in which an exercise is executed. This is the course project of the Coursera course "Practical Machine Learning".
+
+
+1). get data. append train and test to get all cleaning done at the same time.
+```{r}
+download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv", "pml-training.csv")
+download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv", "pml-testing.csv")
+train = read.csv("pml-training.csv")
+test = read.csv("pml-testing.csv")
+names(test)[names(test)=="problem_id"] = "classe"
+data = rbind(test, train)
+```
+
+2). load libraries:
+```{r}
+library(caret)
+library(randomForest)
+```
+
+3). inspect and clean data. many columns have all missing in test data. these columns are not useful. the task is classification and no info about timing, so that time info is not useful. -> remove missing columns in test + time stamp columns.
+```{r}
+#str(test)
+bad = sapply(test, function(X) all(is.na(X)))
+data.part = data[,!bad]
+data.clean = data.part[, !names(data.part) %in% 
+                        c("user_name", "X", "raw_timestamp_part_1",
+                          "raw_timestamp_part_2", "cvtd_timestamp",
+                          "new_window", "num_window")] 
+dim(data)
+dim(data.clean)
+```
+
+4). partition data and remove test.
+```{r}
+test = data.clean[1:20,-53]
+data= data.clean[21:dim(data.clean)[1],]
+set.seed(1234)
+positions = sample(dim(data)[1], size = (dim(data)[1])*0.7, replace = F)
+train = data[positions, ]
+val = data[-positions, ]
+```
+
+5). trying dimension reduction using PCA to reduce waiting time on next step. decide to keep 99% of the information. 
+```{r}
+set.seed(1234)
+c99 = preProcess(x=train[,-53], method = "pca", thresh = 0.99)
+c95 = preProcess(x=train[,-53], method = "pca", thresh = 0.95)
+c90 = preProcess(x=train[,-53], method = "pca", thresh = 0.90)
+c(c99$numComp, c95$numComp, c90$numComp)
+train.new = cbind(  "classe"=train[,53], predict(c99, train[,-53]))
+val.new = cbind("classe"=val[,53],  predict(c99, val[,-53]))
+```
+
+6). prediction. Trying a flexible techinque, allowing for nonlinearities: random forest
+```{r}
+set.seed(9876)
+ForestModel = train(as.factor(classe) ~ ., data = train.new, method = "rf", ntree=50)
+ForestModel
+```
+
+The accuracy was  
+```{r, echo=F}
+sum( ( predict(ForestModel, val.new)== val[,53] )/length(val.new[,1]) )
+``` 
+on the validation data. Good Enough. 
+
+7) Predict test cases. Use course-code to generate .txt-output.
+```{r}
+
+test.new = predict(c99, test)
+out = predict(ForestModel, test.new)
+
+pml_write_files = function(x){
+  n = length(x)
+  for(i in 1:n){
+    filename = paste0("problem_id_",i,".txt")
+    write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
+  }
+}
+
+pml_write_files(out)
+```
+

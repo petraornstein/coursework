@@ -1,0 +1,25 @@
+---
+title: "test"
+author: "petra ornstein"
+date: "19 oktober 2015"
+output: html_document
+---
+
+This is my first R Markdown document. i'm trying it out as part of a <http://coursera.com> course.
+
+My task now is to fill it with simple stuff and put it on github...
+
+```{r}
+seed(1234)
+x = 1:5
+y = runif(5,0,1)
+z = x*y
+```
+
+I can also embed plots, for example:
+
+```{r, echo=FALSE}
+plot(x,z)
+```
+
+
