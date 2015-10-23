@@ -64,12 +64,12 @@ set.seed(9876)
 ForestModel = train(as.factor(classe) ~ ., data = train.new, method = "rf", ntree=50)
 ForestModel
 ```
+Looks good.
 
-The accuracy was  
 ```{r, echo=F}
 sum( ( predict(ForestModel, val.new)== val[,53] )/length(val.new[,1]) )
 ``` 
-on the validation data. Good Enough. 
+The accuracy was 97% on the validation data. Good Enough!
 
 7) Predict test cases. Use course-code to generate .txt-output.
 ```{r}
